@@ -1,0 +1,44 @@
+## Ignore build outputs
+bin/
+obj/
+
+## Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.ide
+
+## Rider
+.idea/
+
+## Visual Studio Code workspace
+.vscode/
+
+## NuGet
+*.nupkg
+packages/
+
+## Publish output
+publish/
+
+## Resharper
+_ReSharper*/
+*.DotSettings.user
+
+## OS files
+.DS_Store
+Thumbs.db
+
+## Logs and databases
+*.log
+*.sql
+*.sqlite
+
+## Certificates and secrets - do NOT commit
+*.pfx
+*.key
+secrets.json
+
+## Build artifacts from CI or other tools
+artifacts/
