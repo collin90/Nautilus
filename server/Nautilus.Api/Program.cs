@@ -23,7 +23,15 @@ else
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSingleton<PasswordHasher>();
 builder.Services.AddScoped<AuthRepository>();
-
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 var app = builder.Build();
 
@@ -39,5 +47,7 @@ app.UseHttpsRedirection();
 app.MapGet("/", () => "Nautilus server running");
 
 app.MapAuthRoutes();
+app.UseCors();
+
 
 app.Run();

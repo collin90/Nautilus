@@ -97,8 +97,8 @@ public class MockClient : IDatabaseClient
             if (string.Equals(command, "auth.RegisterUser", StringComparison.OrdinalIgnoreCase))
             {
                 var email = parameters?.GetType().GetProperty("Email")?.GetValue(parameters, null) as string;
-                var passwordHash = parameters?.GetType().GetProperty("PasswordHash")?.GetValue(parameters, null) as string;
-                var passwordSalt = parameters?.GetType().GetProperty("PasswordSalt")?.GetValue(parameters, null) as string;
+                var passwordHash = parameters?.GetType().GetProperty("PasswordHash")?.GetValue(parameters, null) as byte[];
+                var passwordSalt = parameters?.GetType().GetProperty("PasswordSalt")?.GetValue(parameters, null) as byte[];
 
                 if (string.IsNullOrWhiteSpace(email))
                     return Task.FromResult(default(T));
@@ -111,8 +111,8 @@ public class MockClient : IDatabaseClient
                 {
                     UserId = Guid.NewGuid(),
                     Email = email,
-                    PasswordHash = passwordHash ?? string.Empty,
-                    PasswordSalt = passwordSalt ?? string.Empty,
+                    PasswordHash = passwordHash ?? Array.Empty<byte>(),
+                    PasswordSalt = passwordSalt ?? Array.Empty<byte>(),
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     IsActive = true
