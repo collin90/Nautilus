@@ -9,7 +9,7 @@ public class PasswordHasher
     private const int KeySize = 32;    // 256-bit hash
     private const int Iterations = 210_000;
 
-    public (string Hash, string Salt) Hash(string password)
+    public (byte[] Hash, byte[] Salt) Hash(string password)
     {
         // generate random salt
         byte[] saltBytes = new byte[SaltSize];
@@ -25,26 +25,21 @@ public class PasswordHasher
         );
 
         return (
-            Hash: Convert.ToBase64String(hashBytes),
-            Salt: Convert.ToBase64String(saltBytes)
+            Hash: hashBytes,
+            Salt: saltBytes
         );
     }
 
-    public bool Verify(string password, string storedHash, string storedSalt)
+    public bool Verify(string password, byte[] storedHash, byte[] storedSalt)
     {
-        byte[] saltBytes = Convert.FromBase64String(storedSalt);
-
         byte[] computedHash = KeyDerivation.Pbkdf2(
             password,
-            saltBytes,
+            storedSalt,
             KeyDerivationPrf.HMACSHA256,
             Iterations,
             KeySize
         );
 
-        return CryptographicOperations.FixedTimeEquals(
-            computedHash,
-            Convert.FromBase64String(storedHash)
-        );
+        return CryptographicOperations.FixedTimeEquals(computedHash, storedHash);
     }
 }

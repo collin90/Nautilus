@@ -1,3 +1,4 @@
+using System;
 using Nautilus.Api.Infrastructure;
 using Nautilus.Api.Infrastructure.Security;
 
@@ -14,7 +15,6 @@ public static class LoginHandler
 
         if (user is null)
             return Results.BadRequest("Invalid credentials. User could not be found matching this email or username.");
-
         // Check password using password hasher
         if (user.PasswordHash is null || user.PasswordSalt is null || !hasher.Verify(request.Password, user.PasswordHash, user.PasswordSalt))
             return Results.BadRequest("Invalid credentials. Incorrect Password.");
