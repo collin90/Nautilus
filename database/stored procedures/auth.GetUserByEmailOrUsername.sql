@@ -1,4 +1,4 @@
-CREATE OR ALTER PROCEDURE auth.LoginUser 
+CREATE OR ALTER PROCEDURE auth.GetUserByEmailOrUserName 
 	@UserNameOrEmail NVARCHAR(255)
 AS
 BEGIN
