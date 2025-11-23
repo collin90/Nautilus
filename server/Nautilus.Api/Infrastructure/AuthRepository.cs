@@ -14,7 +14,7 @@ public class AuthRepository
 
     // Stored Procedure Names 
     private const string RegisterUserProcedure = "auth.RegisterUser";
-    private const string LoginUserProcedure = "auth.LoginUser";
+    private const string LoginUserProcedure = "auth.GetUserByEmailOrUsername";
 
     public AuthRepository(IDatabaseClient db, PasswordHasher passwordHasher)
     {
