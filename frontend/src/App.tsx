@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
+import { useAtom } from "jotai";
+import { darkModeAtom } from "@/atoms/theme";
 import { Page } from "@/components/layout/page";
 import LoginPage from "@/components/auth/LoginPage";
+import DarkModeToggle from "@/components/ui/DarkModeToggle";
 import RegisterPage from "@/components/auth/RegisterPage";
 
 export default function App() {
   const [path, setPath] = useState<string>(() => window.location.pathname || "/");
+  const [darkMode] = useAtom(darkModeAtom);
 
   useEffect(() => {
     // On first render, only redirect to `/login` when the user hits the app root `/`.
@@ -32,8 +36,13 @@ export default function App() {
   };
 
   return (
-    <Page>
-      {renderRoute()}
-    </Page>
+    <div className={darkMode ? "dark min-h-screen" : "min-h-screen"}>
+      <div className="absolute top-4 right-4 z-50">
+        <DarkModeToggle />
+      </div>
+      <Page>
+        {renderRoute()}
+      </Page>    </div>
+
   );
 }
