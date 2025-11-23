@@ -1,4 +1,8 @@
+using System.Data;
 using Nautilus.Api.Services;
+using Nautilus.Api.Infrastructure.Security;
+using Nautilus.Api.Infrastructure;
+using Nautilus.Api.Application.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +21,9 @@ else
 }
 
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSingleton<PasswordHasher>();
+builder.Services.AddScoped<AuthRepository>();
+
 
 var app = builder.Build();
 
@@ -26,24 +33,11 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/", () => "Nautilus API is running.");
-app.MapGet("/api/todos", async (IDatabaseClient dbClient) =>
-{
-    var todos = await dbClient.QueryAsync<dynamic>("SELECT * FROM Todos");
-    return Results.Ok(todos);
-});
-app.MapGet("/api/todos/{id}", async (int id, IDatabaseClient dbClient) =>
-{
-    var todo = await dbClient.QuerySingleAsync<dynamic>("SELECT * FROM Todos WHERE Id = @Id", new { Id = id });
-    return todo is not null ? Results.Ok(todo) : Results.NotFound();
-});
-app.MapPost("/api/todos", async (dynamic todo, IDatabaseClient dbClient) =>
-{
-    await dbClient.ExecuteAsync("INSERT INTO Todos (Title, IsCompleted) VALUES (@Title, @IsCompleted)", todo);
-    return Results.Created($"/api/todos/{todo.Id}", todo);
-});
-
 app.UseHttpsRedirection();
 
-app.Run();
+// Base health route
+app.MapGet("/", () => "Nautilus server running");
 
+app.MapAuthRoutes();
+
+app.Run();

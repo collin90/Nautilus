@@ -3,14 +3,9 @@ using Dapper;
 
 namespace Nautilus.Api.Services;
 
-public class DatabaseClient : IDatabaseClient
+public class DatabaseClient(IConfiguration config) : IDatabaseClient
 {
-    private readonly string _connectionString;
-
-    public DatabaseClient(IConfiguration config)
-    {
-        _connectionString = config.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-    }
+    private readonly string _connectionString = config.GetConnectionString("NautilusDatabase") ?? throw new InvalidOperationException("Connection string 'NautilusDatabase' not found.");
 
     private SqlConnection Connect() => new(_connectionString);
 
@@ -33,6 +28,3 @@ public class DatabaseClient : IDatabaseClient
     }
 
 }
-
-
-
