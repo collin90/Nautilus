@@ -3,7 +3,7 @@ import { useAtom } from "jotai";
 import { darkModeAtom } from "@/atoms/theme";
 import { Page } from "@/components/layout/page";
 import LoginPage from "@/components/auth/LoginPage";
-import DarkModeToggle from "@/components/ui/DarkModeToggle";
+import DarkModeToggle from "@/components/ui/darkModeToggle";
 import RegisterPage from "@/components/auth/RegisterPage";
 
 export default function App() {
