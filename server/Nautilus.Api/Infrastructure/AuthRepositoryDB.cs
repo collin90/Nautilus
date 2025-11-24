@@ -3,24 +3,17 @@ using Nautilus.Api.Services;
 using Nautilus.Api.Infrastructure.Security;
 using Nautilus.Api.Domain.Users;
 
-using System.Data;
-
 namespace Nautilus.Api.Infrastructure;
 
-public class AuthRepository
+// Database-backed implementation of IAuthRepository (keeps existing behavior)
+public class AuthRepositoryDB(IDatabaseClient db, PasswordHasher passwordHasher) : IAuthRepository
 {
-    private readonly IDatabaseClient _db;
-    private readonly PasswordHasher _passwordHasher;
+    private readonly IDatabaseClient _db = db;
+    private readonly PasswordHasher _passwordHasher = passwordHasher;
 
-    // Stored Procedure Names 
+    // Stored Procedure Names
     private const string RegisterUserProcedure = "auth.RegisterUser";
-    private const string LoginUserProcedure = "auth.GetUserByEmailOrUsername";
-
-    public AuthRepository(IDatabaseClient db, PasswordHasher passwordHasher)
-    {
-        _db = db;
-        _passwordHasher = passwordHasher;
-    }
+    private const string LoginUserProcedure = "auth.LoginUser";
 
     public async Task<Guid?> RegisterAsync(string userName, string email, string password)
     {

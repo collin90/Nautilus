@@ -11,7 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 
 // Configure IDatabaseClient: use mock when `UseMockDatabase` is true in configuration
-if (builder.Configuration.GetValue("UseMockDatabase", false))
+if (builder.Configuration.GetValue("Backend:Type", "memory") == "memory")
 {
     builder.Services.AddSingleton<IDatabaseClient, MockClient>();
 }
@@ -22,7 +22,15 @@ else
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSingleton<PasswordHasher>();
-builder.Services.AddScoped<AuthRepository>();
+// Register IAuthRepository implementation based on configuration
+if (builder.Configuration.GetValue("Backend:Type", "memory") == "memory")
+{
+    builder.Services.AddSingleton<IAuthRepository, AuthRepositoryMem>();
+}
+else
+{
+    builder.Services.AddScoped<IAuthRepository, AuthRepositoryDB>();
+}
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
