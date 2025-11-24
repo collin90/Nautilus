@@ -8,7 +8,7 @@ public static class LoginHandler
 {
     public static async Task<IResult> Handle(
         LoginRequest request,
-        AuthRepository repo,
+        IAuthRepository repo,
         PasswordHasher hasher)
     {
         var user = await repo.GetUserByIdentifierAsync(request.Identifier);

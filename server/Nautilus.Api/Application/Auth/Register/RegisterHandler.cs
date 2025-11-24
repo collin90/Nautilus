@@ -6,7 +6,7 @@ public static class RegisterHandler
 {
     public static async Task<IResult> Handle(
         RegisterRequest request,
-        AuthRepository repo)
+        IAuthRepository repo)
     {
         var userId = await repo.RegisterAsync(
             request.UserName,
