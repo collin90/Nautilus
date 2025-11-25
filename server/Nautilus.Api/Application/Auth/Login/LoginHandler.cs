@@ -22,6 +22,6 @@ public static class LoginHandler
         // Generate JWT (we can add this next)
         var token = "fake-jwt-token-for-now";
 
-        return Results.Ok(new { Token = token });
+        return Results.Ok(new { Token = token, user.UserId });
     }
 }

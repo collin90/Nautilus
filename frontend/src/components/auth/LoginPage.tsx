@@ -51,9 +51,15 @@ export default function LoginPage() {
 
                             setLoading(true)
                             try {
-                                await login(id, password)
+                                const result = await login(id, password);
+                                console.log("Login result:", result);
                                 setSuccess("Signed in successfully")
-                                // TODO: navigate to protected area when ready
+                                const userGuid = result?.userId
+                                if (userGuid) {
+                                    navigate(`/home/${userGuid}`)
+                                } else {
+                                    setGeneralError("Could not get user ID from server response.")
+                                }
                             } catch (err: any) {
                                 setGeneralError(err?.message || "Sign in failed")
                             } finally {
