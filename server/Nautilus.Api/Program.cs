@@ -1,8 +1,10 @@
 using System.Data;
 using Nautilus.Api.Services;
 using Nautilus.Api.Infrastructure.Security;
-using Nautilus.Api.Infrastructure;
+using Nautilus.Api.Infrastructure.Auth;
+using Nautilus.Api.Infrastructure.Profile;
 using Nautilus.Api.Application.Auth;
+using Nautilus.Api.Application.Profile;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,10 +28,12 @@ builder.Services.AddSingleton<PasswordHasher>();
 if (builder.Configuration.GetValue("Backend:Type", "memory") == "memory")
 {
     builder.Services.AddSingleton<IAuthRepository, AuthRepositoryMem>();
+    builder.Services.AddSingleton<IProfileRepository, ProfileRepositoryMem>();
 }
 else
 {
     builder.Services.AddScoped<IAuthRepository, AuthRepositoryDB>();
+    builder.Services.AddScoped<IProfileRepository, ProfileRepositoryDB>();
 }
 builder.Services.AddCors(options =>
 {
@@ -55,6 +59,7 @@ app.UseHttpsRedirection();
 app.MapGet("/", () => "Nautilus server running");
 
 app.MapAuthRoutes();
+app.MapProfileRoutes();
 app.UseCors();
 
 

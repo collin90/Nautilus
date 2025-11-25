@@ -1,4 +1,4 @@
-using Nautilus.Api.Infrastructure;
+using Nautilus.Api.Infrastructure.Auth;
 
 namespace Nautilus.Api.Application.Auth.Register;
 

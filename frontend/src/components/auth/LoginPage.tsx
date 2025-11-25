@@ -5,7 +5,7 @@ import { useState } from "react";
 import { login } from "@/lib/auth/api/requests";
 import useNavigate from "@/hooks/useNavigate";
 import { useAtom } from "jotai";
-import { usernameAtom, emailAtom, passwordAtom } from "@/atoms/auth";
+import { usernameAtom, emailAtom, passwordAtom, userGuidAtom } from "@/atoms/auth";
 
 export default function LoginPage() {
     const navigate = useNavigate()
@@ -13,6 +13,7 @@ export default function LoginPage() {
     const [username, setUsername] = useAtom(usernameAtom)
     const [email, setEmail] = useAtom(emailAtom)
     const [password, setPassword] = useAtom(passwordAtom)
+    const [, setUserGuid] = useAtom(userGuidAtom)
     const [identifierError, setIdentifierError] = useState<string | null>(null)
     const [passwordError, setPasswordError] = useState<string | null>(null)
     const [generalError, setGeneralError] = useState<string | null>(null)
@@ -51,9 +52,15 @@ export default function LoginPage() {
 
                             setLoading(true)
                             try {
-                                await login(id, password)
+                                const result = await login(id, password);
                                 setSuccess("Signed in successfully")
-                                // TODO: navigate to protected area when ready
+                                const userGuid = result?.userId
+                                setUserGuid(userGuid);
+                                if (userGuid) {
+                                    navigate(`/home/${userGuid}`)
+                                } else {
+                                    setGeneralError("Could not get user ID from server response.")
+                                }
                             } catch (err: any) {
                                 setGeneralError(err?.message || "Sign in failed")
                             } finally {

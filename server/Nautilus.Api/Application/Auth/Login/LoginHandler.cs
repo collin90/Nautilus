@@ -1,5 +1,5 @@
 using System;
-using Nautilus.Api.Infrastructure;
+using Nautilus.Api.Infrastructure.Auth;
 using Nautilus.Api.Infrastructure.Security;
 
 namespace Nautilus.Api.Application.Auth.Login;
@@ -22,6 +22,6 @@ public static class LoginHandler
         // Generate JWT (we can add this next)
         var token = "fake-jwt-token-for-now";
 
-        return Results.Ok(new { Token = token });
+        return Results.Ok(new { Token = token, user.UserId });
     }
 }
