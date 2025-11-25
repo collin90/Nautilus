@@ -2,14 +2,15 @@
 using Nautilus.Api.Domain.Users;
 using Nautilus.Api.Infrastructure.Security;
 
-namespace Nautilus.Api.Infrastructure;
+namespace Nautilus.Api.Infrastructure.Auth;
 
 // In-memory implementation of IAuthRepository for local testing
 public class AuthRepositoryMem(PasswordHasher passwordHasher, ILogger<AuthRepositoryMem> logger) : IAuthRepository
 {
     private readonly PasswordHasher _passwordHasher = passwordHasher;
     private readonly ILogger<AuthRepositoryMem> _logger = logger;
-    private readonly List<User> _users = [];
+    // Use shared in-memory user store
+    private static List<User> Users => Shared.UserStore.Users;
 
     public Task<Guid?> RegisterAsync(string userName, string email, string password)
     {
@@ -19,7 +20,7 @@ public class AuthRepositoryMem(PasswordHasher passwordHasher, ILogger<AuthReposi
             return Task.FromResult<Guid?>(null);
         }
 
-        if (_users.Any(u => string.Equals(u.Email, email, StringComparison.OrdinalIgnoreCase)))
+        if (Users.Any(u => string.Equals(u.Email, email, StringComparison.OrdinalIgnoreCase)))
         {
             _logger.LogWarning("Register failed - user already exists: {Email}", email);
             return Task.FromResult<Guid?>(null);
@@ -39,7 +40,7 @@ public class AuthRepositoryMem(PasswordHasher passwordHasher, ILogger<AuthReposi
             IsActive = true
         };
 
-        _users.Add(user);
+        Users.Add(user);
 
         _logger.LogInformation("Registered user {UserId} {Email} {UserName}", user.UserId, user.Email, user.UserName);
 
@@ -54,8 +55,8 @@ public class AuthRepositoryMem(PasswordHasher passwordHasher, ILogger<AuthReposi
             return Task.FromResult<User?>(null);
         }
 
-        var user = _users.FirstOrDefault(u => string.Equals(u.Email, identifier, StringComparison.OrdinalIgnoreCase) ||
-                                              string.Equals(u.UserName, identifier, StringComparison.OrdinalIgnoreCase));
+        var user = Users.FirstOrDefault(u => string.Equals(u.Email, identifier, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(u.UserName, identifier, StringComparison.OrdinalIgnoreCase));
 
         if (user is null)
             _logger.LogWarning("User not found for identifier: {Identifier}", identifier);

@@ -1,5 +1,5 @@
 using System;
-using Nautilus.Api.Infrastructure;
+using Nautilus.Api.Infrastructure.Auth;
 using Nautilus.Api.Infrastructure.Security;
 
 namespace Nautilus.Api.Application.Auth.Login;

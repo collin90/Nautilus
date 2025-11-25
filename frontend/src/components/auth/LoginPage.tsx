@@ -5,7 +5,7 @@ import { useState } from "react";
 import { login } from "@/lib/auth/api/requests";
 import useNavigate from "@/hooks/useNavigate";
 import { useAtom } from "jotai";
-import { usernameAtom, emailAtom, passwordAtom } from "@/atoms/auth";
+import { usernameAtom, emailAtom, passwordAtom, userGuidAtom } from "@/atoms/auth";
 
 export default function LoginPage() {
     const navigate = useNavigate()
@@ -13,6 +13,7 @@ export default function LoginPage() {
     const [username, setUsername] = useAtom(usernameAtom)
     const [email, setEmail] = useAtom(emailAtom)
     const [password, setPassword] = useAtom(passwordAtom)
+    const [, setUserGuid] = useAtom(userGuidAtom)
     const [identifierError, setIdentifierError] = useState<string | null>(null)
     const [passwordError, setPasswordError] = useState<string | null>(null)
     const [generalError, setGeneralError] = useState<string | null>(null)
@@ -52,9 +53,9 @@ export default function LoginPage() {
                             setLoading(true)
                             try {
                                 const result = await login(id, password);
-                                console.log("Login result:", result);
                                 setSuccess("Signed in successfully")
                                 const userGuid = result?.userId
+                                setUserGuid(userGuid);
                                 if (userGuid) {
                                     navigate(`/home/${userGuid}`)
                                 } else {

@@ -1,9 +1,8 @@
-using Dapper;
 using Nautilus.Api.Services;
 using Nautilus.Api.Infrastructure.Security;
 using Nautilus.Api.Domain.Users;
 
-namespace Nautilus.Api.Infrastructure;
+namespace Nautilus.Api.Infrastructure.Auth;
 
 // Database-backed implementation of IAuthRepository (keeps existing behavior)
 public class AuthRepositoryDB(IDatabaseClient db, PasswordHasher passwordHasher) : IAuthRepository

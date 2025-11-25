@@ -1,6 +1,6 @@
 using Nautilus.Api.Domain.Users;
 
-namespace Nautilus.Api.Infrastructure;
+namespace Nautilus.Api.Infrastructure.Auth;
 
 public interface IAuthRepository
 {
