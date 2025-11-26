@@ -37,6 +37,7 @@ A modern full-stack app with a .NET backend and React + Tailwind frontend.
          (same as before where you'll need to modify that command to use the proper path)
 	 - Start the UI by running the following command from the terminal once you're in the /frontend directory:
 		 ```sh
+         npm i
 		 npm run dev
 		 ```
 	 - Open the printed `localhost` URL in your browser to view the app.
