@@ -1,7 +1,7 @@
 
 # 🐚 Nautilus
 
-A conservation-focused, gamified app for exploring Earth’s species
+A conservation-focused, gamified app for exploring life on Earth
 
 ## 🌍 Overview
 
