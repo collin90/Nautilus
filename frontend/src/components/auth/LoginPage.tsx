@@ -57,7 +57,7 @@ export default function LoginPage() {
                                 const userGuid = result?.userId
                                 setUserGuid(userGuid);
                                 if (userGuid) {
-                                    navigate(`/home/${userGuid}`)
+                                    navigate(`/home/${userGuid}?user=${userGuid}`)
                                 } else {
                                     setGeneralError("Could not get user ID from server response.")
                                 }
