@@ -4,5 +4,5 @@ namespace Nautilus.Api.Infrastructure.Eco;
 
 public interface ISpeciesRepository
 {
-    Task<List<TaxonomicTree>> SearchSpeciesAsync(string query);
+    Task<List<TaxonomicTree>> SearchSpeciesAsync(string query, string? kingdom = null);
 }
