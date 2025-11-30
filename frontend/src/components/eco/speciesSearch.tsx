@@ -22,9 +22,10 @@ interface SpeciesSearchResponse {
 export default function SpeciesSearch() {
     const [searchQuery, setSearchQuery] = useState("");
     const [submittedQuery, setSubmittedQuery] = useState("");
+    const [kingdomFilter, setKingdomFilter] = useState("animalia");
 
     const { data, isLoading, error } = useApiQuery<SpeciesSearchResponse>(
-        `/species?query=${encodeURIComponent(submittedQuery)}`,
+        `/species?query=${encodeURIComponent(submittedQuery)}&kingdom=${encodeURIComponent(kingdomFilter)}`,
         { enabled: !!submittedQuery } as any
     );
 
@@ -67,11 +68,25 @@ export default function SpeciesSearch() {
                         <div className="flex gap-2">
                             <Input
                                 type="text"
-                                placeholder="Search for an animal! (e.g., lion, eagle, dolphin)"
+                                placeholder="Search for a species! (e.g., lion, eagle, dolphin)"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="flex-1"
                             />
+                            <select
+                                value={kingdomFilter}
+                                onChange={(e) => setKingdomFilter(e.target.value)}
+                                className="px-3 py-2 border border-input bg-background rounded-md text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                            >
+                                <option value="all">All Kingdoms</option>
+                                <option value="animalia">Animalia</option>
+                                <option value="plantae">Plantae</option>
+                                <option value="fungi">Fungi</option>
+                                <option value="bacteria">Bacteria</option>
+                                <option value="archaea">Archaea</option>
+                                <option value="protista">Protista</option>
+                                <option value="chromista">Chromista</option>
+                            </select>
                             <Button type="submit" disabled={isLoading || !searchQuery.trim()}>
                                 {isLoading ? "Searching..." : "Search"}
                             </Button>

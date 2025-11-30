@@ -7,144 +7,99 @@ public class SpeciesRepositoryMem(ILogger<SpeciesRepositoryMem> logger) : ISpeci
 {
     private static readonly HttpClient _httpClient = new();
 
-    public async Task<List<TaxonomicTree>> SearchSpeciesAsync(string query)
+    // GBIF API constants
+    private const string _gbifBaseUrlV1 = "https://api.gbif.org/v1";
+    private const string _gbifSpeciesSearchEndpoint = "/species/search";
+    private const string _gbifVernacularNamesEndpointTemplate = "/species/{0}/vernacularNames";
+    private const int _gbifSearchLimit = 100;
+    private const string _gbifSpeciesRank = "SPECIES";
+    private const string _gbifAcceptedStatus = "ACCEPTED";
+
+    // Relevance filtering
+    private const double _minRelevanceScore = 50.0; // Minimum score to include in results
+
+    // JSON deserialization options
+    private readonly JsonSerializerOptions _jsonSerOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
+    private async Task<GbifResult> GetGbifSpeciesResult(string query)
+    {
+        var gbifUrl = $"{_gbifBaseUrlV1}{_gbifSpeciesSearchEndpoint}?q={Uri.EscapeDataString(query)}&rank={_gbifSpeciesRank}&status={_gbifAcceptedStatus}&limit={_gbifSearchLimit}";
+        var response = await _httpClient.GetAsync(gbifUrl);
+        logger.LogInformation("Called GBIF API for query: {Query}", query);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogInformation("GBIF API call failed with status code: {StatusCode}", response.StatusCode);
+            return new GbifResult();
+        }
+
+        var jsonContent = await response.Content.ReadAsStringAsync();
+
+        var gbifResult = JsonSerializer.Deserialize<GbifResult>(jsonContent, _jsonSerOptions);
+        if (gbifResult == null || gbifResult.Results == null)
+        {
+            logger.LogInformation("GBIF API returned null or invalid data for query: {Query}", query);
+            return new GbifResult();
+        }
+        logger.LogInformation("GBIF API returned {Count} results for query: {Query}", gbifResult.Results.Count, query);
+        logger.LogInformation("{JsonContent}", jsonContent);
+
+        return gbifResult;
+    }
+
+    public async Task<List<TaxonomicTree>> SearchSpeciesAsync(string query, string? kingdom = null)
     {
         try
         {
             // 1. Check cache first
-            logger.LogInformation("Searching species for query: {Query}", query);
+            logger.LogInformation("Searching species for query: {Query}, kingdom: {Kingdom}", query, kingdom ?? "all");
             if (EcoStoreMem.SearchCache.TryGetValue(query, out var cachedResults))
             {
-                var cachedTrees = cachedResults
-                    .Select(cache => EcoStoreMem.Species.TryGetValue(cache.SpeciesId, out var species) ? species : null)
-                    .Where(s => s != null)
-                    .Select(s => BuildTaxonomicTree(s!))
+                var cachedTreesWithScores = cachedResults
+                    .Select(cache => new
+                    {
+                        Species = EcoStoreMem.Species.TryGetValue(cache.SpeciesId, out var species) ? species : null,
+                        cache.RelevanceScore
+                    })
+                    .Where(x => x.Species != null)
+                    .Select(x => new
+                    {
+                        Tree = BuildTaxonomicTree(x.Species!),
+                        Score = x.RelevanceScore
+                    })
                     .ToList();
 
-                if (cachedTrees.Count != 0)
+                if (cachedTreesWithScores.Count != 0)
                 {
-                    logger.LogInformation("Cache hit for query: {Query} with {Count} results", query, cachedTrees.Count);
-                    return cachedTrees;
+                    logger.LogInformation("Cache hit for query: {Query} with {Count} results", query, cachedTreesWithScores.Count);
+
+                    // Apply kingdom filter and sort using cached scores
+                    var filteredCached = ApplyKingdomFilterAndSort(cachedTreesWithScores.Select(x => x.Tree).ToList(),
+                        cachedTreesWithScores.ToDictionary(x => x.Tree, x => x.Score), kingdom);
+
+                    return filteredCached;
                 }
             }
             logger.LogInformation("Cache miss for query: {Query}", query);
 
             // 2. Cache miss - call GBIF API with increased limit
-            var gbifUrl = $"https://api.gbif.org/v1/species/search?q={Uri.EscapeDataString(query)}&rank=SPECIES&status=ACCEPTED&limit=100";
-            var response = await _httpClient.GetAsync(gbifUrl);
-            logger.LogInformation("Called GBIF API for query: {Query}", query);
+            GbifResult gbifResult = await GetGbifSpeciesResult(query);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                logger.LogInformation("GBIF API call failed with status code: {StatusCode}", response.StatusCode);
-                return [];
+            // 3. Preprocess and deduplicate GBIF data
+            var processedSpecies = PreprocessGbifSpecies(gbifResult.Results);
+            logger.LogInformation("Processing {Count} unique species for query: {Query}", processedSpecies.Count, query);
 
-            }
+            // 4. Build taxonomic trees and populate cache
+            var taxonomicTrees = await BuildTaxonomicTreesAndCache(processedSpecies, query);
 
-            var jsonContent = await response.Content.ReadAsStringAsync();
-            var gbifResult = JsonSerializer.Deserialize<GbifResult>(jsonContent, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            // 5. Filter and sort by relevance and kingdom
+            var filteredTrees = FilterAndSortByRelevance(taxonomicTrees, query, kingdom);
 
-            if (gbifResult == null || gbifResult.Results == null)
-            {
-                logger.LogInformation("GBIF API returned null or invalid data for query: {Query}", query);
-                return [];
-            }
-            logger.LogInformation("GBIF API returned {Count} results for query: {Query}", gbifResult.Results.Count, query);
-            logger.LogInformation("{JsonContent}", jsonContent);
-
-            // 3. Sort results with Animalia first, then other kingdoms
-            var sortedSpecies = gbifResult.Results
-                .OrderByDescending(s => s.Kingdom != null && s.Kingdom.Equals("Animalia", StringComparison.OrdinalIgnoreCase))
-                .ThenBy(s => s.Kingdom)
-                .ToList();
-
-            logger.LogInformation("Processing {Count} species for query: {Query}", sortedSpecies.Count, query);
-
-            // 4. Build unique taxonomic trees and populate cache
-            var taxonomicTrees = new List<TaxonomicTree>();
-            var seenSpecies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var gbifSpecies in sortedSpecies)
-            {
-                var scientificName = gbifSpecies.ScientificName ?? gbifSpecies.CanonicalName ?? "Unknown";
-
-                // Skip duplicates based on scientific name
-                if (seenSpecies.Contains(scientificName))
-                    continue;
-
-                seenSpecies.Add(scientificName);
-                logger.LogInformation("Processing unique species: Key={Key}, ScientificName={ScientificName}", gbifSpecies.Key, scientificName);
-
-                // Fetch vernacular names from GBIF species detail endpoint
-                var vernacularNames = await FetchVernacularNamesAsync(gbifSpecies.Key);
-
-                // Store taxonomic hierarchy
-                var kingdomId = GetOrCreateKingdom(gbifSpecies.Kingdom);
-                var phylumId = GetOrCreatePhylum(gbifSpecies.Phylum, kingdomId);
-                var classId = GetOrCreateClass(gbifSpecies.Class, phylumId);
-                var orderId = GetOrCreateOrder(gbifSpecies.Order, classId);
-                var familyId = GetOrCreateFamily(gbifSpecies.Family, orderId);
-                var genusId = GetOrCreateGenus(gbifSpecies.Genus, familyId);
-
-                // Store species
-                var speciesId = EcoStoreMem.GetNextSpeciesId();
-                var species = new Species
-                {
-                    Id = speciesId,
-                    ScientificName = scientificName,
-                    GenusId = genusId,
-                    UsageKey = gbifSpecies.Key
-                };
-                EcoStoreMem.Species[speciesId] = species;
-
-                // Store common names
-                foreach (var vernacularName in vernacularNames)
-                {
-                    var commonNameId = Guid.NewGuid();
-                    var taxonCommonName = new TaxonCommonName
-                    {
-                        Id = commonNameId,
-                        SpeciesId = speciesId,
-                        CommonName = vernacularName,
-                        Source = "GBIF"
-                    };
-                    EcoStoreMem.TaxonCommonNames[commonNameId] = taxonCommonName;
-                }
-
-                // Build taxonomic tree
-                var tree = new TaxonomicTree
-                {
-                    Kingdom = gbifSpecies.Kingdom,
-                    Phylum = gbifSpecies.Phylum,
-                    Class = gbifSpecies.Class,
-                    Order = gbifSpecies.Order,
-                    Family = gbifSpecies.Family,
-                    Genus = gbifSpecies.Genus,
-                    Species = scientificName,
-                    VernacularNames = vernacularNames
-                };
-                taxonomicTrees.Add(tree);
-
-                // Store in search cache
-                var searchCacheEntry = new SearchCache
-                {
-                    QueryText = query,
-                    SpeciesId = speciesId,
-                    Confidence = 1.0m,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                if (!EcoStoreMem.SearchCache.ContainsKey(query))
-                    EcoStoreMem.SearchCache[query] = [];
-
-                EcoStoreMem.SearchCache[query].Add(searchCacheEntry);
-            }
-
-            logger.LogInformation("Search completed for query: {Query}, found {Count} unique species", query, taxonomicTrees.Count);
-            return taxonomicTrees;
+            logger.LogInformation("Search completed for query: {Query}, found {Count} unique species", query, filteredTrees.Count);
+            return filteredTrees;
         }
         catch (Exception ex)
         {
@@ -153,11 +108,238 @@ public class SpeciesRepositoryMem(ILogger<SpeciesRepositoryMem> logger) : ISpeci
         }
     }
 
-    private async Task<List<string>> FetchVernacularNamesAsync(int speciesKey)
+    /// <summary>
+    /// Filters results by kingdom and sorts them by relevance to the search query.
+    /// Relevance is based on: 1) Scientific name match, 2) Vernacular name match, 3) Similarity.
+    /// </summary>
+    private static List<TaxonomicTree> FilterAndSortByRelevance(List<TaxonomicTree> trees, string query, string? kingdom)
+    {
+        var normalizedQuery = query.Trim().ToLowerInvariant();
+
+        // Calculate scores for all trees
+        var scoresDict = trees.ToDictionary(
+            t => t,
+            t => SpeciesRelevanceUtil.CalculateRelevanceScore(t, normalizedQuery)
+        );
+
+        return ApplyKingdomFilterAndSort(trees, scoresDict, kingdom);
+    }
+
+    /// <summary>
+    /// Applies kingdom filtering and sorting using pre-calculated relevance scores.
+    /// </summary>
+    private static List<TaxonomicTree> ApplyKingdomFilterAndSort(
+        List<TaxonomicTree> trees,
+        Dictionary<TaxonomicTree, double> relevanceScores,
+        string? kingdom)
+    {
+        // Normalize kingdom filter
+        var kingdomFilter = kingdom?.Trim().ToLowerInvariant();
+
+        // Filter by kingdom if specified
+        var filtered = trees;
+        if (!string.IsNullOrWhiteSpace(kingdomFilter) && kingdomFilter != "all")
+        {
+            filtered = [.. trees.Where(t => t.Kingdom != null && t.Kingdom.Equals(kingdom, StringComparison.OrdinalIgnoreCase))];
+        }
+
+        // Filter by minimum relevance score and sort
+        return [.. filtered
+            .Where(t => relevanceScores.TryGetValue(t, out var score) && score >= _minRelevanceScore)
+            .OrderByDescending(t => relevanceScores.TryGetValue(t, out var score) ? score : 0)
+            .ThenBy(t => GetKingdomSortOrder(t.Kingdom))
+            .ThenBy(t => t.Species)];
+    }
+
+    /// <summary>
+    /// Returns sort order for kingdoms (lower number = higher priority).
+    /// </summary>
+    private static int GetKingdomSortOrder(string? kingdom)
+    {
+        return kingdom?.ToLowerInvariant() switch
+        {
+            "animalia" => 1,
+            "plantae" => 2,
+            "fungi" => 3,
+            "bacteria" => 4,
+            "archaea" => 5,
+            "protista" => 6,
+            "chromista" => 7,
+            _ => 99 // Unknown kingdoms go last
+        };
+    }
+
+    /// <summary>
+    /// Normalizes scientific names to "genus species" format and merges duplicate records.
+    /// </summary>
+    private static List<GbifSpecies> PreprocessGbifSpecies(List<GbifSpecies> species)
+    {
+        var normalizedSpecies = new Dictionary<string, GbifSpecies>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var gbifSpecies in species)
+        {
+            // Normalize scientific name to "genus species" format
+            var scientificName = gbifSpecies.ScientificName ?? gbifSpecies.CanonicalName ?? string.Empty;
+            var normalizedName = NormalizeScientificName(scientificName);
+
+            // Skip if name cannot be normalized to "genus species" format
+            if (normalizedName == null)
+                continue;
+
+            if (normalizedSpecies.TryGetValue(normalizedName, out var existing))
+            {
+                // Merge records - fill in missing data from new record
+                existing.Kingdom ??= gbifSpecies.Kingdom;
+                existing.Phylum ??= gbifSpecies.Phylum;
+                existing.Class ??= gbifSpecies.Class;
+                existing.Order ??= gbifSpecies.Order;
+                existing.Family ??= gbifSpecies.Family;
+                existing.Genus ??= gbifSpecies.Genus;
+                existing.Species ??= gbifSpecies.Species;
+
+                // Keep the first Key encountered
+                if (existing.Key == 0 && gbifSpecies.Key != 0)
+                    existing.Key = gbifSpecies.Key;
+            }
+            else
+            {
+                // Create a copy with normalized name
+                var normalized = new GbifSpecies
+                {
+                    Key = gbifSpecies.Key,
+                    ScientificName = normalizedName,
+                    CanonicalName = gbifSpecies.CanonicalName,
+                    Kingdom = gbifSpecies.Kingdom,
+                    Phylum = gbifSpecies.Phylum,
+                    Class = gbifSpecies.Class,
+                    Order = gbifSpecies.Order,
+                    Family = gbifSpecies.Family,
+                    Genus = gbifSpecies.Genus,
+                    Species = gbifSpecies.Species,
+                    VernacularNames = gbifSpecies.VernacularNames
+                };
+                normalizedSpecies[normalizedName] = normalized;
+            }
+        }
+
+        return [.. normalizedSpecies.Values];
+    }
+
+    /// <summary>
+    /// Normalizes scientific name to "genus species" format by removing author/discoverer info.
+    /// Example: "Panthera leo (Linnaeus, 1758)" -> "Panthera leo"
+    /// Returns null if the name cannot be normalized to genus species format.
+    /// </summary>
+    private static string? NormalizeScientificName(string scientificName)
+    {
+        if (string.IsNullOrWhiteSpace(scientificName))
+            return null;
+
+        // Remove anything in parentheses (discoverer/author info)
+        var parenIndex = scientificName.IndexOf('(');
+        if (parenIndex > 0)
+            scientificName = scientificName[..parenIndex].Trim();
+
+        // Split into words and take first two (genus species)
+        var parts = scientificName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+            return $"{parts[0]} {parts[1]}";
+
+        // Cannot normalize to "genus species" format
+        return null;
+    }
+
+    /// <summary>
+    /// Builds taxonomic trees from preprocessed GBIF species and populates cache.
+    /// </summary>
+    private async Task<List<TaxonomicTree>> BuildTaxonomicTreesAndCache(List<GbifSpecies> gbifSpeciesList, string query)
+    {
+        var taxonomicTrees = new List<TaxonomicTree>();
+        var normalizedQuery = query.Trim().ToLowerInvariant();
+
+        foreach (var gbifSpecies in gbifSpeciesList)
+        {
+            var scientificName = gbifSpecies.ScientificName ?? "Unknown";
+            logger.LogInformation("Processing species: Key={Key}, ScientificName={ScientificName}", gbifSpecies.Key, scientificName);
+
+            // Fetch vernacular names from GBIF species detail endpoint
+            var vernacularNames = await FetchVernacularNamesAsync(gbifSpecies.Key);
+
+            // Store taxonomic hierarchy
+            var kingdomId = GetOrCreateKingdom(gbifSpecies.Kingdom);
+            var phylumId = GetOrCreatePhylum(gbifSpecies.Phylum, kingdomId);
+            var classId = GetOrCreateClass(gbifSpecies.Class, phylumId);
+            var orderId = GetOrCreateOrder(gbifSpecies.Order, classId);
+            var familyId = GetOrCreateFamily(gbifSpecies.Family, orderId);
+            var genusId = GetOrCreateGenus(gbifSpecies.Genus, familyId);
+
+            // Store species
+            var speciesId = EcoStoreMem.GetNextSpeciesId();
+            var species = new Species
+            {
+                Id = speciesId,
+                ScientificName = scientificName,
+                GenusId = genusId,
+                UsageKey = gbifSpecies.Key
+            };
+            EcoStoreMem.Species[speciesId] = species;
+
+            // Store common names
+            foreach (var vernacularName in vernacularNames)
+            {
+                var commonNameId = Guid.NewGuid();
+                var taxonCommonName = new TaxonCommonName
+                {
+                    Id = commonNameId,
+                    SpeciesId = speciesId,
+                    CommonName = vernacularName,
+                    Source = "GBIF"
+                };
+                EcoStoreMem.TaxonCommonNames[commonNameId] = taxonCommonName;
+            }
+
+            // Build taxonomic tree
+            var tree = new TaxonomicTree
+            {
+                Kingdom = gbifSpecies.Kingdom,
+                Phylum = gbifSpecies.Phylum,
+                Class = gbifSpecies.Class,
+                Order = gbifSpecies.Order,
+                Family = gbifSpecies.Family,
+                Genus = gbifSpecies.Genus,
+                Species = scientificName,
+                VernacularNames = vernacularNames
+            };
+            taxonomicTrees.Add(tree);
+
+            // Calculate and store relevance score in cache
+            var relevanceScore = SpeciesRelevanceUtil.CalculateRelevanceScore(tree, normalizedQuery);
+
+            var searchCacheEntry = new SearchCache
+            {
+                QueryText = query,
+                SpeciesId = speciesId,
+                RelevanceScore = relevanceScore,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            if (!EcoStoreMem.SearchCache.ContainsKey(query))
+                EcoStoreMem.SearchCache[query] = [];
+
+            EcoStoreMem.SearchCache[query].Add(searchCacheEntry);
+        }
+
+        return taxonomicTrees;
+    }
+
+    /// <summary>
+    /// Fetches vernacular names for a species from GBIF API.
+    /// </summary>
+    private static async Task<List<string>> FetchVernacularNamesAsync(int speciesKey)
     {
         try
         {
-            var vernacularUrl = $"https://api.gbif.org/v1/species/{speciesKey}/vernacularNames";
+            var vernacularUrl = $"{_gbifBaseUrlV1}{string.Format(_gbifVernacularNamesEndpointTemplate, speciesKey)}";
             var response = await _httpClient.GetAsync(vernacularUrl);
 
             if (!response.IsSuccessStatusCode)
@@ -172,11 +354,10 @@ public class SpeciesRepositoryMem(ILogger<SpeciesRepositoryMem> logger) : ISpeci
             if (vernacularResult?.Results == null)
                 return [];
 
-            return vernacularResult.Results
+            return [.. vernacularResult.Results
                 .Where(v => !string.IsNullOrWhiteSpace(v.VernacularName))
                 .Select(v => v.VernacularName!)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
+                .Distinct(StringComparer.OrdinalIgnoreCase)];
         }
         catch
         {
@@ -184,7 +365,7 @@ public class SpeciesRepositoryMem(ILogger<SpeciesRepositoryMem> logger) : ISpeci
         }
     }
 
-    private TaxonomicTree BuildTaxonomicTree(Species species)
+    private static TaxonomicTree BuildTaxonomicTree(Species species)
     {
         // Traverse hierarchy to build full taxonomic tree
         var genus = EcoStoreMem.Genuses.TryGetValue(species.GenusId, out var g) ? g : null;
@@ -296,7 +477,7 @@ internal class GbifResult
     public int Offset { get; set; }
     public int Limit { get; set; }
     public bool EndOfRecords { get; set; }
-    public List<GbifSpecies> Results { get; set; } = new();
+    public List<GbifSpecies> Results { get; set; } = [];
 }
 
 internal class GbifSpecies
@@ -317,7 +498,7 @@ internal class GbifSpecies
 
 internal class GbifVernacularResult
 {
-    public List<GbifVernacularName> Results { get; set; } = new();
+    public List<GbifVernacularName> Results { get; set; } = [];
 }
 
 internal class GbifVernacularName

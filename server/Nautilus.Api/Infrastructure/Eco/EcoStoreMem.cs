@@ -66,7 +66,7 @@ public class SearchCache
 {
     public string QueryText { get; set; } = default!;
     public int SpeciesId { get; set; }
-    public decimal Confidence { get; set; }
+    public double RelevanceScore { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
