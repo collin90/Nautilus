@@ -46,6 +46,7 @@ public class Species
 {
     public int Id { get; set; }
     public string ScientificName { get; set; } = default!;
+    public string? Kingdom { get; set; }
     public int GenusId { get; set; }
     public long? UsageKey { get; set; }
     public string? Authorship { get; set; }
@@ -70,6 +71,13 @@ public class SearchCache
     public DateTime CreatedAt { get; set; }
 }
 
+public class SpeciesImage
+{
+    public string ScientificName { get; set; } = default!;
+    public string? ImageUrl { get; set; }
+    public DateTime CachedAt { get; set; }
+}
+
 // Static in-memory store for ecological data
 public static class EcoStoreMem
 {
@@ -82,6 +90,7 @@ public static class EcoStoreMem
     public static Dictionary<int, Species> Species { get; } = new();
     public static Dictionary<Guid, TaxonCommonName> TaxonCommonNames { get; } = new();
     public static Dictionary<string, List<SearchCache>> SearchCache { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public static Dictionary<string, SpeciesImage> SpeciesImages { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     private static int _nextKingdomId = 1;
     private static int _nextPhylumId = 1;
