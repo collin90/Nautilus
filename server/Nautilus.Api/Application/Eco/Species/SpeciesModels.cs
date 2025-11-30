@@ -2,7 +2,15 @@ namespace Nautilus.Api.Application.Eco.Species;
 
 public class SpeciesSearchResponse
 {
-    public List<TaxonomicTree> Results { get; set; } = new();
+    public List<SpeciesSearchResult> Results { get; set; } = [];
+}
+
+public class SpeciesSearchResult
+{
+    public string ScientificName { get; set; } = string.Empty;
+    public string? Kingdom { get; set; }
+    public List<string> VernacularNames { get; set; } = [];
+    public string? ImageUrl { get; set; }
 }
 
 public class TaxonomicTree
@@ -14,5 +22,5 @@ public class TaxonomicTree
     public string? Family { get; set; }
     public string? Genus { get; set; }
     public string? Species { get; set; }
-    public List<string> VernacularNames { get; set; } = new();
+    public List<string> VernacularNames { get; set; } = [];
 }

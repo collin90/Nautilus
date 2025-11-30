@@ -10,7 +10,7 @@ public class SpeciesRepositoryDB : ISpeciesRepository
         // Initialize DB connection if needed
     }
 
-    public async Task<List<TaxonomicTree>> SearchSpeciesAsync(string query, string? kingdom = null)
+    public async Task<List<SpeciesSearchResult>> SearchSpeciesAsync(string query, string? kingdom = null)
     {
         // TODO: Implement actual DB query logic
         await Task.Delay(10);
