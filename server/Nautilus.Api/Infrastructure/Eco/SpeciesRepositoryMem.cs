@@ -28,11 +28,11 @@ public class SpeciesRepositoryMem(ILogger<SpeciesRepositoryMem> logger) : ISpeci
     {
         var gbifUrl = $"{_gbifBaseUrlV1}{_gbifSpeciesSearchEndpoint}?q={Uri.EscapeDataString(query)}&rank={_gbifSpeciesRank}&status={_gbifAcceptedStatus}&limit={_gbifSearchLimit}";
         var response = await _httpClient.GetAsync(gbifUrl);
-        logger.LogInformation("Called GBIF API for query: {Query}", query);
+        logger.LogDebug("Called GBIF API for query: {Query}", query);
 
         if (!response.IsSuccessStatusCode)
         {
-            logger.LogInformation("GBIF API call failed with status code: {StatusCode}", response.StatusCode);
+            logger.LogDebug("GBIF API call failed with status code: {StatusCode}", response.StatusCode);
             return new GbifResult();
         }
 
@@ -41,11 +41,11 @@ public class SpeciesRepositoryMem(ILogger<SpeciesRepositoryMem> logger) : ISpeci
         var gbifResult = JsonSerializer.Deserialize<GbifResult>(jsonContent, _jsonSerOptions);
         if (gbifResult == null || gbifResult.Results == null)
         {
-            logger.LogInformation("GBIF API returned null or invalid data for query: {Query}", query);
+            logger.LogDebug("GBIF API returned null or invalid data for query: {Query}", query);
             return new GbifResult();
         }
-        logger.LogInformation("GBIF API returned {Count} results for query: {Query}", gbifResult.Results.Count, query);
-        logger.LogInformation("{JsonContent}", jsonContent);
+        logger.LogDebug("GBIF API returned {Count} results for query: {Query}", gbifResult.Results.Count, query);
+        logger.LogDebug("{JsonContent}", jsonContent);
 
         return gbifResult;
     }
@@ -55,7 +55,7 @@ public class SpeciesRepositoryMem(ILogger<SpeciesRepositoryMem> logger) : ISpeci
         try
         {
             // 1. Check cache first
-            logger.LogInformation("Searching species for query: {Query}, kingdom: {Kingdom}", query, kingdom ?? "all");
+            logger.LogDebug("Searching species for query: {Query}, kingdom: {Kingdom}", query, kingdom ?? "all");
             if (EcoStoreMem.SearchCache.TryGetValue(query, out var cachedResults))
             {
                 var cachedTreesWithScores = cachedResults
@@ -74,7 +74,7 @@ public class SpeciesRepositoryMem(ILogger<SpeciesRepositoryMem> logger) : ISpeci
 
                 if (cachedTreesWithScores.Count != 0)
                 {
-                    logger.LogInformation("Cache hit for query: {Query} with {Count} results", query, cachedTreesWithScores.Count);
+                    logger.LogDebug("Cache hit for query: {Query} with {Count} results", query, cachedTreesWithScores.Count);
 
                     // Apply kingdom filter and sort using cached scores
                     var filteredCached = ApplyKingdomFilterAndSort(cachedTreesWithScores.Select(x => x.Tree).ToList(),
@@ -83,14 +83,14 @@ public class SpeciesRepositoryMem(ILogger<SpeciesRepositoryMem> logger) : ISpeci
                     return filteredCached;
                 }
             }
-            logger.LogInformation("Cache miss for query: {Query}", query);
+            logger.LogDebug("Cache miss for query: {Query}", query);
 
             // 2. Cache miss - call GBIF API with increased limit
             GbifResult gbifResult = await GetGbifSpeciesResult(query);
 
             // 3. Preprocess and deduplicate GBIF data
             var processedSpecies = PreprocessGbifSpecies(gbifResult.Results);
-            logger.LogInformation("Processing {Count} unique species for query: {Query}", processedSpecies.Count, query);
+            logger.LogDebug("Processing {Count} unique species for query: {Query}", processedSpecies.Count, query);
 
             // 4. Build taxonomic trees and populate cache
             var taxonomicTrees = await BuildTaxonomicTreesAndCache(processedSpecies, query);
@@ -98,7 +98,7 @@ public class SpeciesRepositoryMem(ILogger<SpeciesRepositoryMem> logger) : ISpeci
             // 5. Filter and sort by relevance and kingdom
             var filteredTrees = FilterAndSortByRelevance(taxonomicTrees, query, kingdom);
 
-            logger.LogInformation("Search completed for query: {Query}, found {Count} unique species", query, filteredTrees.Count);
+            logger.LogDebug("Search completed for query: {Query}, found {Count} unique species", query, filteredTrees.Count);
             return filteredTrees;
         }
         catch (Exception ex)
@@ -260,7 +260,7 @@ public class SpeciesRepositoryMem(ILogger<SpeciesRepositoryMem> logger) : ISpeci
         foreach (var gbifSpecies in gbifSpeciesList)
         {
             var scientificName = gbifSpecies.ScientificName ?? "Unknown";
-            logger.LogInformation("Processing species: Key={Key}, ScientificName={ScientificName}", gbifSpecies.Key, scientificName);
+            logger.LogDebug("Processing species: Key={Key}, ScientificName={ScientificName}", gbifSpecies.Key, scientificName);
 
             // Fetch vernacular names from GBIF species detail endpoint
             var vernacularNames = await FetchVernacularNamesAsync(gbifSpecies.Key);
