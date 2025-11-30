@@ -1,10 +1,11 @@
 import { Card } from "@/components/ui/card";
-import Navbar from "@/components/navbar/Navbar";
 import { useAtom } from "jotai";
 import { usernameAtom, userGuidAtom, emailAtom, passwordAtom } from "@/atoms/auth";
 import { useEffect } from "react";
 import { useApiQuery } from "@/lib/api";
 import { useNavigate, useParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useAuthUrl } from "@/hooks/useAuthUrl";
 
 export default function UserHomePage() {
     const [username, setUsername] = useAtom(usernameAtom);
@@ -13,6 +14,7 @@ export default function UserHomePage() {
     const [, setPassword] = useAtom(passwordAtom);
     const navigate = useNavigate();
     const { userGuid } = useParams();
+    const { buildUrl } = useAuthUrl();
     const { data, isLoading, error } = useApiQuery<{ userName: string; email: string }>(`/profile/${userGuid}`);
 
     useEffect(() => {
@@ -31,27 +33,33 @@ export default function UserHomePage() {
     };
 
     return (
-        <div className="min-h-screen bg-background">
-            <Navbar>
-                <button
-                    className="mr-2 px-4 py-2 rounded bg-destructive text-destructive-foreground hover:bg-destructive/80 transition"
-                    onClick={handleLogout}
-                >
-                    Log out
-                </button>
-                <button
-                    className="px-4 py-2 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 transition"
-                    onClick={() => navigate(`/profile/${userGuid}`)}
-                >
-                    Profile
-                </button>
-            </Navbar>
-            <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-                <Card className="w-[380px]">
-                    {isLoading ? "Loading..." : error ? "Error loading profile" : `Welcome to Nautilus, ${username}!`}
-                    <div className="mt-2 text-sm text-muted-foreground">{email}</div>
-                </Card>
-            </div>
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+            <Card className="w-[380px] p-6">
+                {isLoading ? (
+                    <p>Loading...</p>
+                ) : error ? (
+                    <p>Error loading profile</p>
+                ) : (
+                    <>
+                        <h2 className="text-2xl font-bold mb-2">Welcome to Nautilus, {username}!</h2>
+                        <div className="text-sm text-muted-foreground mb-6">{email}</div>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="secondary"
+                                onClick={() => navigate(buildUrl(`/profile/${userGuid}`))}
+                            >
+                                Profile Settings
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                onClick={handleLogout}
+                            >
+                                Log out
+                            </Button>
+                        </div>
+                    </>
+                )}
+            </Card>
         </div>
     );
 }
