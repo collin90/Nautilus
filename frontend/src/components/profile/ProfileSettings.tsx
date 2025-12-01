@@ -1,18 +1,18 @@
 import { Button } from "@/components/ui/button";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useApiQuery } from "@/lib/api";
 import { useAtom } from "jotai";
-import { usernameAtom, emailAtom } from "@/atoms/auth";
+import { usernameAtom, emailAtom, userGuidAtom, passwordAtom } from "@/atoms/auth";
 import DarkModeToggle from "@/components/ui/darkModeToggle";
 import { useEffect } from "react";
-import { useAuthUrl } from "@/hooks/useAuthUrl";
+import { removeToken } from "@/lib/auth/tokenStorage";
 
 export default function ProfileSettings() {
     const navigate = useNavigate();
-    const { userGuid } = useParams();
-    const { buildUrl } = useAuthUrl();
+    const [userGuid, setUserGuid] = useAtom(userGuidAtom);
     const [username, setUsername] = useAtom(usernameAtom);
     const [email, setEmail] = useAtom(emailAtom);
+    const [, setPassword] = useAtom(passwordAtom);
     const shouldFetch = !username || !email;
     const { data, isLoading, error } = useApiQuery<{ userName: string; email: string }>(`/profile/${userGuid}`);
 
@@ -22,6 +22,19 @@ export default function ProfileSettings() {
             if (!email) setEmail(data.email);
         }
     }, [data, setUsername, setEmail, username, email]);
+
+    const handleLogout = () => {
+        // Clear JWT token
+        removeToken();
+
+        // Clear auth state
+        setUsername("");
+        setUserGuid("");
+        setEmail("");
+        setPassword("");
+
+        navigate("/");
+    };
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background">
@@ -41,7 +54,10 @@ export default function ProfileSettings() {
                             <div className="mb-6">Email: <span className="font-mono">{email}</span></div>
                         </>
                     )}
-                    <Button onClick={() => navigate(buildUrl(`/home/${userGuid}`))}>Done</Button>
+                    <div className="flex gap-2 justify-center">
+                        <Button onClick={() => navigate("/home")}>Done</Button>
+                        <Button variant="destructive" onClick={handleLogout}>Log out</Button>
+                    </div>
                 </div>
             </div>
         </div>

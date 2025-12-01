@@ -1,4 +1,7 @@
 using System.Data;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Nautilus.Api.Services;
 using Nautilus.Api.Infrastructure.Security;
 using Nautilus.Api.Infrastructure.Auth;
@@ -26,6 +29,38 @@ else
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSingleton<PasswordHasher>();
+builder.Services.AddSingleton<JwtService>();
+
+// Configure JWT Authentication
+var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
+    ?? throw new InvalidOperationException("JWT SecretKey is not configured");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"]
+    ?? throw new InvalidOperationException("JWT Issuer is not configured");
+var jwtAudience = builder.Configuration["Jwt:Audience"]
+    ?? throw new InvalidOperationException("JWT Audience is not configured");
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
+        ValidateIssuer = true,
+        ValidIssuer = jwtIssuer,
+        ValidateAudience = true,
+        ValidAudience = jwtAudience,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+builder.Services.AddAuthorization();
+
 // Register IAuthRepository implementation based on configuration
 if (builder.Configuration.GetValue("Backend:Type", "memory") == "memory")
 {
@@ -58,6 +93,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors();
+
+// Add authentication and authorization middleware
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Base health route
 app.MapGet("/", () => "Nautilus server running");
@@ -65,7 +105,6 @@ app.MapGet("/", () => "Nautilus server running");
 app.MapAuthRoutes();
 app.MapProfileRoutes();
 app.MapEcoRoutes();
-app.UseCors();
 
 
 app.Run();

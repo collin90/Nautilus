@@ -4,16 +4,22 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { login } from "@/lib/auth/api/requests";
 import useNavigate from "@/hooks/useNavigate";
-import { useAtom } from "jotai";
-import { usernameAtom, emailAtom, passwordAtom, userGuidAtom } from "@/atoms/auth";
+import { useSetAtom } from "jotai";
+import { usernameAtom, emailAtom, userGuidAtom } from "@/atoms/auth";
+import { setToken } from "@/lib/auth/tokenStorage";
+import { getUserFromToken } from "@/lib/auth/jwtUtils";
 
 export default function LoginPage() {
     const navigate = useNavigate()
     const [mode, setMode] = useState<"username" | "email">("username");
-    const [username, setUsername] = useAtom(usernameAtom)
-    const [email, setEmail] = useAtom(emailAtom)
-    const [password, setPassword] = useAtom(passwordAtom)
-    const [, setUserGuid] = useAtom(userGuidAtom)
+    // Local state for form inputs
+    const [usernameInput, setUsernameInput] = useState("")
+    const [emailInput, setEmailInput] = useState("")
+    const [passwordInput, setPasswordInput] = useState("")
+    // Global setters (only set after successful login)
+    const setUsername = useSetAtom(usernameAtom)
+    const setEmail = useSetAtom(emailAtom)
+    const setUserGuid = useSetAtom(userGuidAtom)
     const [identifierError, setIdentifierError] = useState<string | null>(null)
     const [passwordError, setPasswordError] = useState<string | null>(null)
     const [generalError, setGeneralError] = useState<string | null>(null)
@@ -38,29 +44,44 @@ export default function LoginPage() {
 
                             // Validate identifier (username or email)
                             if (mode === "username") {
-                                if (!username.trim()) setIdentifierError("Username is required")
+                                if (!usernameInput.trim()) setIdentifierError("Username is required")
                             } else {
-                                if (!email.trim()) setIdentifierError("Email is required")
+                                if (!emailInput.trim()) setIdentifierError("Email is required")
                             }
 
-                            if (!password) {
+                            if (!passwordInput) {
                                 setPasswordError("Password is required")
                             }
 
-                            const id = mode === "username" ? username.trim() : email.trim()
-                            if (!id || !password) return
+                            const id = mode === "username" ? usernameInput.trim() : emailInput.trim()
+                            if (!id || !passwordInput) return
 
                             setLoading(true)
                             try {
-                                const result = await login(id, password);
-                                setSuccess("Signed in successfully")
-                                const userGuid = result?.userId
-                                setUserGuid(userGuid);
-                                if (userGuid) {
-                                    navigate(`/home/${userGuid}?user=${userGuid}`)
-                                } else {
-                                    setGeneralError("Could not get user ID from server response.")
+                                const result = await login(id, passwordInput);
+
+                                // Store JWT token
+                                if (!result?.token) {
+                                    setGeneralError("No token received from server.");
+                                    return;
                                 }
+
+                                setToken(result.token);
+
+                                // Extract user info from JWT token
+                                const userInfo = getUserFromToken(result.token);
+                                if (!userInfo) {
+                                    setGeneralError("Failed to decode token.");
+                                    return;
+                                }
+
+                                // Set user info from JWT claims
+                                setUsername(userInfo.username);
+                                setEmail(userInfo.email);
+                                setUserGuid(userInfo.userId);
+
+                                setSuccess("Signed in successfully");
+                                navigate("/home");
                             } catch (err: any) {
                                 setGeneralError(err?.message || "Sign in failed")
                             } finally {
@@ -70,21 +91,21 @@ export default function LoginPage() {
                     >
                         {mode === "username" ? (
                             <div>
-                                <Input label="Username" type="text" placeholder="your-username" value={username} onChange={(e) => setUsername(e.target.value)} error={identifierError} />
+                                <Input label="Username" type="text" placeholder="your-username" value={usernameInput} onChange={(e) => setUsernameInput(e.target.value)} error={identifierError} />
                                 <div className="mt-2">
                                     <Button variant="link" size="sm" type="button" onClick={() => setMode("email")}>Use email instead</Button>
                                 </div>
                             </div>
                         ) : (
                             <div>
-                                <Input label="Email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} error={identifierError} />
+                                <Input label="Email" type="email" placeholder="you@example.com" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} error={identifierError} />
                                 <div className="mt-2">
                                     <Button variant="link" size="sm" type="button" onClick={() => setMode("username")}>Use username instead</Button>
                                 </div>
                             </div>
                         )}
 
-                        <Input label="Password" type="password" placeholder="Your password" value={password} onChange={(e) => setPassword(e.target.value)} error={passwordError} />
+                        <Input label="Password" type="password" placeholder="Your password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} error={passwordError} />
 
                         {generalError ? <p className="text-sm text-red-600">{generalError}</p> : null}
                         {success ? <p className="text-sm text-green-600">{success}</p> : null}
