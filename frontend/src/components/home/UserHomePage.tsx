@@ -3,18 +3,17 @@ import { useAtom } from "jotai";
 import { usernameAtom, userGuidAtom, emailAtom, passwordAtom } from "@/atoms/auth";
 import { useEffect } from "react";
 import { useApiQuery } from "@/lib/api";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useAuthUrl } from "@/hooks/useAuthUrl";
+import { removeToken } from "@/lib/auth/tokenStorage";
 
 export default function UserHomePage() {
     const [username, setUsername] = useAtom(usernameAtom);
-    const [, setUserGuid] = useAtom(userGuidAtom);
+    const [userGuid, setUserGuid] = useAtom(userGuidAtom);
     const [email, setEmail] = useAtom(emailAtom);
     const [, setPassword] = useAtom(passwordAtom);
     const navigate = useNavigate();
-    const { userGuid } = useParams();
-    const { buildUrl } = useAuthUrl();
+
     const { data, isLoading, error } = useApiQuery<{ userName: string; email: string }>(`/profile/${userGuid}`);
 
     useEffect(() => {
@@ -25,10 +24,15 @@ export default function UserHomePage() {
     }, [data, setUsername, setEmail]);
 
     const handleLogout = () => {
+        // Clear JWT token
+        removeToken();
+
+        // Clear auth state
         setUsername("");
         setUserGuid("");
         setEmail("");
         setPassword("");
+
         navigate("/");
     };
 
@@ -46,7 +50,7 @@ export default function UserHomePage() {
                         <div className="flex gap-2">
                             <Button
                                 variant="secondary"
-                                onClick={() => navigate(buildUrl(`/profile/${userGuid}`))}
+                                onClick={() => navigate("/profile")}
                             >
                                 Profile Settings
                             </Button>

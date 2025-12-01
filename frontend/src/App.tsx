@@ -24,8 +24,8 @@ export default function App() {
               <Route path="/explore" element={<Explore />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-              <Route path="/home/:userGuid" element={<UserHomePage />} />
-              <Route path="/profile/:userGuid" element={<ProfileSettings />} />
+              <Route path="/home" element={<UserHomePage />} />
+              <Route path="/profile" element={<ProfileSettings />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Page>

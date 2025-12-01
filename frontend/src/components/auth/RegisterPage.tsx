@@ -3,16 +3,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Tooltip from "@/components/ui/tooltip";
 import { useState, useMemo } from "react";
-import { useAtom } from "jotai";
 import { register as apiRegister } from "@/lib/auth/api/requests";
-import { usernameAtom, emailAtom, passwordAtom } from "@/atoms/auth";
 import useNavigate from "@/hooks/useNavigate";
 
 export default function RegisterPage() {
     const navigate = useNavigate()
-    const [username, setUsername] = useAtom(usernameAtom)
-    const [email, setEmail] = useAtom(emailAtom)
-    const [password, setPassword] = useAtom(passwordAtom)
+    const [username, setUsername] = useState("")
+    const [email, setEmail] = useState("")
+    const [password, setPassword] = useState("")
     const [confirm, setConfirm] = useState("")
 
     const [usernameError, setUsernameError] = useState<string | null>(null)

@@ -1,10 +1,31 @@
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
+import { getToken } from '@/lib/auth/tokenStorage';
 
 const BASE = (import.meta as any).env?.VITE_API_BASE || "http://localhost:5106"
 
+function getAuthHeaders(): HeadersInit {
+    const token = getToken();
+    const headers: HeadersInit = {
+        "Content-Type": "application/json"
+    };
+
+    if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    return headers;
+}
+
 export async function get<T>(path: string): Promise<T> {
-    const res = await fetch(`${BASE}${path}`);
+    const token = getToken();
+    const headers: HeadersInit = {};
+
+    if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${BASE}${path}`, { headers });
     if (!res.ok) {
         const text = await res.text();
         let json: any = null;
@@ -28,7 +49,7 @@ export function useApiQuery<T>(path: string, options?: UseQueryOptions<T>) {
 export async function post<T>(path: string, body: unknown) {
     const res = await fetch(`${BASE}${path}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify(body),
     })
 

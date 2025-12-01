@@ -1,18 +1,15 @@
 import { Link } from "react-router-dom";
 import { useAtom } from "jotai";
-import { usernameAtom, userGuidAtom } from "@/atoms/auth";
-import { useAuthUrl } from "@/hooks/useAuthUrl";
+import { usernameAtom } from "@/atoms/auth";
 
 export default function Navbar() {
     const [username] = useAtom(usernameAtom);
-    const [userGuid] = useAtom(userGuidAtom);
-    const { buildUrl } = useAuthUrl();
-    const isLoggedIn = !!username && !!userGuid;
+    const isLoggedIn = !!username;
 
     return (
         <nav className="w-full h-16 border-b border-border flex items-center px-6 bg-background">
             <div className="flex items-center gap-2">
-                <Link to={buildUrl("/")} className="flex items-center gap-2 text-xl font-semibold hover:opacity-80 transition">
+                <Link to="/" className="flex items-center gap-2 text-xl font-semibold hover:opacity-80 transition">
                     <img src="/logo.png" alt="Nautilus Logo" className="h-6 w-6" />
                     <span>Nautilus</span>
                 </Link>
@@ -21,12 +18,12 @@ export default function Navbar() {
             <div className="flex-1" />
 
             <div className="flex items-center gap-6">
-                <Link to={buildUrl("/explore")} className="text-sm font-medium hover:text-primary transition">
+                <Link to="/explore" className="text-sm font-medium hover:text-primary transition">
                     Explore
                 </Link>
 
                 {isLoggedIn ? (
-                    <Link to={buildUrl(`/profile/${userGuid}`)} className="text-sm font-medium hover:text-primary transition">
+                    <Link to="/profile" className="text-sm font-medium hover:text-primary transition">
                         {username}
                     </Link>
                 ) : (
