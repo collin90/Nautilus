@@ -34,4 +34,36 @@ public class AuthRepositoryDB(IDatabaseClient db, PasswordHasher passwordHasher)
             new { UserNameOrEmail = identifier }
         );
     }
+
+    public async Task<bool> SetActivationTokenAsync(Guid userId, string token, DateTime expiry)
+    {
+        // TODO: Implement database stored procedure call
+        // For now, return true as a placeholder
+        await Task.CompletedTask;
+        return true;
+    }
+
+    public async Task<bool> ActivateUserAsync(string token)
+    {
+        // TODO: Implement database stored procedure call
+        // For now, return true as a placeholder
+        await Task.CompletedTask;
+        return true;
+    }
+
+    public async Task<bool> SetPasswordResetTokenAsync(Guid userId, string token, DateTime expiry)
+    {
+        // TODO: Implement database stored procedure call
+        // For now, return true as a placeholder
+        await Task.CompletedTask;
+        return true;
+    }
+
+    public async Task<bool> ResetPasswordAsync(string token, string newPassword, PasswordHasher hasher)
+    {
+        // TODO: Implement database stored procedure call
+        // For now, return true as a placeholder
+        await Task.CompletedTask;
+        return true;
+    }
 }

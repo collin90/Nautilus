@@ -21,6 +21,10 @@ public static class LoginHandler
         if (user.PasswordHash is null || user.PasswordSalt is null || !hasher.Verify(request.Password, user.PasswordHash, user.PasswordSalt))
             return Results.BadRequest("Invalid credentials. Incorrect Password.");
 
+        // Check if account is activated
+        if (!user.IsActivated)
+            return Results.Unauthorized();
+
         // Generate JWT token
         var token = jwtService.GenerateToken(user.UserId, user.UserName, user.Email);
 
