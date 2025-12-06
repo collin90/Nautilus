@@ -107,6 +107,12 @@ export default function LoginPage() {
 
                         <Input label="Password" type="password" placeholder="Your password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} error={passwordError} />
 
+                        <div className="text-right">
+                            <Button variant="link" size="sm" type="button" onClick={() => navigate("/request-reset")}>
+                                Forgot password?
+                            </Button>
+                        </div>
+
                         {generalError ? <p className="text-sm text-red-600">{generalError}</p> : null}
                         {success ? <p className="text-sm text-green-600">{success}</p> : null}
 

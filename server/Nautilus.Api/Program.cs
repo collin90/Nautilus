@@ -7,6 +7,7 @@ using Nautilus.Api.Infrastructure.Security;
 using Nautilus.Api.Infrastructure.Auth;
 using Nautilus.Api.Infrastructure.Profile;
 using Nautilus.Api.Infrastructure.Eco;
+using Nautilus.Api.Infrastructure.Email;
 using Nautilus.Api.Application.Auth;
 using Nautilus.Api.Application.Profile;
 using Nautilus.Api.Application.Eco;
@@ -17,19 +18,19 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-// Configure IDatabaseClient: use mock when `UseMockDatabase` is true in configuration
-if (builder.Configuration.GetValue("Backend:Type", "memory") == "memory")
-{
-    builder.Services.AddSingleton<IDatabaseClient, MockClient>();
-}
-else
+// Configure IDatabaseClient if db is the backend type.
+if (builder.Configuration.GetValue("Backend:Type", "db") == "db")
 {
     builder.Services.AddSingleton<IDatabaseClient, DatabaseClient>();
+
 }
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSingleton<PasswordHasher>();
 builder.Services.AddSingleton<JwtService>();
+
+// Configure HttpClient for EmailService
+builder.Services.AddHttpClient<IEmailService, EmailService>();
 
 // Configure JWT Authentication
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]

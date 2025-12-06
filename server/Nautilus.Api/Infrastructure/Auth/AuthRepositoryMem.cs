@@ -37,7 +37,7 @@ public class AuthRepositoryMem(PasswordHasher passwordHasher, ILogger<AuthReposi
             PasswordSalt = salt,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
-            IsActive = true
+            IsActivated = false
         };
 
         Users.Add(user);
@@ -64,5 +64,98 @@ public class AuthRepositoryMem(PasswordHasher passwordHasher, ILogger<AuthReposi
             _logger.LogInformation("Found user {UserId} {Email} {UserName} for identifier {Identifier}", user.UserId, user.Email, user.UserName, identifier);
 
         return Task.FromResult(user);
+    }
+
+    public Task<bool> SetActivationTokenAsync(Guid userId, string token, DateTime expiry)
+    {
+        var user = Users.FirstOrDefault(u => u.UserId == userId);
+        if (user is null)
+        {
+            _logger.LogWarning("SetActivationToken failed - user not found: {UserId}", userId);
+            return Task.FromResult(false);
+        }
+
+        user.ActivationToken = token;
+        user.ActivationTokenExpiry = expiry;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        _logger.LogInformation("Activation token set for user {UserId}: Token={Token}, Expiry={Expiry}", userId, token, expiry);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> ActivateUserAsync(string token)
+    {
+        _logger.LogDebug("ActivateUserAsync called with token: {Token}", token);
+        _logger.LogDebug("Current users in store: {Count}", Users.Count);
+
+        foreach (var u in Users)
+        {
+            _logger.LogDebug("User {UserId} has ActivationToken: {Token}", u.UserId, u.ActivationToken ?? "NULL");
+        }
+
+        var user = Users.FirstOrDefault(u => u.ActivationToken == token);
+        if (user is null)
+        {
+            _logger.LogWarning("ActivateUser failed - invalid token: {Token}", token);
+            return Task.FromResult(false);
+        }
+
+        if (user.ActivationTokenExpiry < DateTime.UtcNow)
+        {
+            _logger.LogWarning("ActivateUser failed - token expired for user {UserId}", user.UserId);
+            return Task.FromResult(false);
+        }
+
+        user.IsActivated = true;
+        user.ActivationToken = null;
+        user.ActivationTokenExpiry = null;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        _logger.LogInformation("User activated: {UserId} {Email}", user.UserId, user.Email);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> SetPasswordResetTokenAsync(Guid userId, string token, DateTime expiry)
+    {
+        var user = Users.FirstOrDefault(u => u.UserId == userId);
+        if (user is null)
+        {
+            _logger.LogWarning("SetPasswordResetToken failed - user not found: {UserId}", userId);
+            return Task.FromResult(false);
+        }
+
+        user.PasswordResetToken = token;
+        user.PasswordResetTokenExpiry = expiry;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        _logger.LogInformation("Password reset token set for user {UserId}", userId);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> ResetPasswordAsync(string token, string newPassword, PasswordHasher hasher)
+    {
+        var user = Users.FirstOrDefault(u => u.PasswordResetToken == token);
+        if (user is null)
+        {
+            _logger.LogWarning("ResetPassword failed - invalid token");
+            return Task.FromResult(false);
+        }
+
+        if (user.PasswordResetTokenExpiry < DateTime.UtcNow)
+        {
+            _logger.LogWarning("ResetPassword failed - token expired for user {UserId}", user.UserId);
+            return Task.FromResult(false);
+        }
+
+        // Hash new password
+        var (hash, salt) = hasher.Hash(newPassword);
+        user.PasswordHash = hash;
+        user.PasswordSalt = salt;
+        user.PasswordResetToken = null;
+        user.PasswordResetTokenExpiry = null;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        _logger.LogInformation("Password reset successfully for user {UserId}", user.UserId);
+        return Task.FromResult(true);
     }
 }

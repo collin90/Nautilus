@@ -9,5 +9,9 @@ public class User
     public byte[] PasswordSalt { get; set; } = default!;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
-    public bool IsActive { get; set; }
+    public bool IsActivated { get; set; }
+    public string? ActivationToken { get; set; }
+    public DateTime? ActivationTokenExpiry { get; set; }
+    public string? PasswordResetToken { get; set; }
+    public DateTime? PasswordResetTokenExpiry { get; set; }
 }
