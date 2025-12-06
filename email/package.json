@@ -1,0 +1,31 @@
+{
+  "name": "email",
+  "version": "1.0.0",
+  "description": "Nautilus email service using Resend",
+  "main": "src/server.ts",
+  "scripts": {
+    "dev": "ts-node src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@react-email/components": "latest",
+    "@react-email/render": "latest",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "react": "latest",
+    "react-dom": "latest",
+    "resend": "latest"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

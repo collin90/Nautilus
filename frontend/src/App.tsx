@@ -5,6 +5,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "@/components/home/HomePage";
 import LoginPage from "@/components/auth/LoginPage";
 import RegisterPage from "@/components/auth/RegisterPage";
+import ActivateAccountPage from "@/components/auth/ActivateAccountPage";
+import RequestPasswordResetPage from "@/components/auth/RequestPasswordResetPage";
+import ResetPasswordPage from "@/components/auth/ResetPasswordPage";
 import UserHomePage from "@/components/home/UserHomePage";
 import ProfileSettings from "@/components/profile/ProfileSettings";
 import Explore from "@/components/eco/explore";
@@ -24,6 +27,9 @@ export default function App() {
               <Route path="/explore" element={<Explore />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/activate" element={<ActivateAccountPage />} />
+              <Route path="/request-reset" element={<RequestPasswordResetPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/home" element={<UserHomePage />} />
               <Route path="/profile" element={<ProfileSettings />} />
               <Route path="*" element={<Navigate to="/" replace />} />
