@@ -66,6 +66,7 @@ GBIF is the key data integration used by Nautilus. It enables a rich user experi
 
 - **.NET 10** ([Download .NET 10](https://dotnet.microsoft.com/en-us/download/dotnet/10.0))
 - **Node.js (latest LTS recommended)** ([Download Node.js](https://nodejs.org/en/download/))
+- **Log in to Resend with the nautilus-devs@outlook.com email. Contact Collin Hughes for the password!!** ([login page](https://resend.com/login))
 
 ## Local Development Setup
 
