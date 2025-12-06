@@ -24,13 +24,30 @@ public static class RegisterHandler
         var activationToken = TokenGenerator.GenerateToken();
         var tokenExpiry = DateTime.UtcNow.AddHours(24);
 
+        logger.LogDebug(
+            "Generated activation token for user {UserId}: {Token}",
+            userId,
+            activationToken
+        );
+
         // Store activation token in repository
         await repo.SetActivationTokenAsync(userId.Value, activationToken, tokenExpiry);
+
+        logger.LogDebug(
+            "Stored activation token for user {UserId}, now sending email",
+            userId
+        );
 
         // Send activation email
         var emailSent = await emailService.SendActivationEmailAsync(
             request.Email,
             request.UserName,
+            activationToken
+        );
+
+        logger.LogDebug(
+            "Sent activation email to {Email} with token: {Token}",
+            request.Email,
             activationToken
         );
 

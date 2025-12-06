@@ -84,9 +84,24 @@ The email service uses Resend to send activation and password reset emails.
    RESEND_API_KEY=your_key_here
    ```
 
-### 2. Viewing Test Emails in Resend
+### 2. Understanding Test Email Delivery
 
-During development, all emails are sent to a test domain and can be viewed in the Resend dashboard.
+During development, emails are handled differently depending on the recipient:
+
+**For most test emails:**
+- Emails are **NOT sent to real email addresses**
+- Instead, they're delivered to: `delivered+{email-label}@resend.dev`
+  - Example: If you register on the Nautilus app with `john.doe@example.com`, the email goes to `delivered+john.doe@resend.dev`
+- These emails can be viewed in the Resend dashboard (see below)
+
+**For the nautilus-devs@outlook.com account:**
+- Emails **ARE delivered** to the real Outlook inbox
+- Use this if you want to test the full email experience
+- **Contact Collin Hughes** to get the Outlook account password
+
+### 3. Viewing Test Emails in Resend Dashboard
+
+All development emails can be previewed in the Resend dashboard:
 
 1. **Login to Resend**: Visit [https://resend.com/login](https://resend.com/login)
    - Email: `nautilus-devs@outlook.com`
@@ -97,7 +112,7 @@ During development, all emails are sent to a test domain and can be viewed in th
    - Click the envelope icon next to any email to preview its content
    - To interact with links in the email preview, right-click and select "Open link in new tab"
 
-### 3. Running Nautilus Locally
+### 4. Running Nautilus Locally
 
 The easiest way to run the entire application is using the launch script:
 
@@ -116,7 +131,14 @@ The easiest way to run the entire application is using the launch script:
    http://localhost:5173
    ```
 
-5. Press `Ctrl+C` in the PowerShell window to stop all services
+**Making changes while running:**
+- ✅ **Email templates** (`email/src/templates/`) - Changes apply automatically when saved with hot reload
+- ✅ **Frontend UI** (`frontend/src/`) - Changes apply automatically when saved with hot reload
+- ⚠️ **.NET API** (`server/`) - Requires stopping and restarting the app (`Ctrl+C` then `.\runlocal.ps1` again)
+
+**To stop the application:**
+- Go to the terminal window where you ran `runlocal.ps1`
+- Press `Ctrl+C` to gracefully stop all services (it takes a couple seconds to stop)
 
 ### Alternative: Manual Setup
 

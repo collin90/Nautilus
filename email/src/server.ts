@@ -20,6 +20,10 @@ function getEmailRecipient(email: string): string {
         return email;
     }
 
+    if (email == "nautilus-devs@outlook.com") {
+        return email;
+    }
+
     // Replace domain with nautilus.testing for development
     const [localPart] = email.split('@');
     return `delivered+${localPart}@resend.dev`;
