@@ -69,38 +69,87 @@ GBIF is the key data integration used by Nautilus. It enables a rich user experi
 
 ## Local Development Setup
 
-1. **Configure Backend for In-Memory Mode**
-	 - Open `server/appsettings.Development.json`
-	 - Set:
-		 ```json
-		 "Backend": {
-			 "Type": "memory"
-		 }
-		 ```
+### 1. Email Service Configuration
 
-2. **Run the .NET Server**
-	 - Open a terminal and navigate to:
-		 ```sh
-		 cd Nautilus/server/Nautilus.Api
-		 ```
-         (You will need to modify the above command to include /c/Users/< your name >/.../Nautilus/ to get it to work)
-	 - Start the server by running the following command from the terminal once you're in the above directory:
-		 ```sh
-		 dotnet run
-		 ```
+The email service uses Resend to send activation and password reset emails.
 
-3. **Run the Frontend UI**
-	 - Open a new terminal and navigate to:
-		 ```sh
-		 cd Nautilus/frontend
-		 ```
-         (same as before where you'll need to modify that command to use the proper path)
-	 - Start the UI by running the following command from the terminal once you're in the /frontend directory:
-		 ```sh
-         npm i
-		 npm run dev
-		 ```
-	 - Open the printed `localhost` URL in your browser to view the app.
+1. Navigate to the `email` directory
+2. Create a `.env` file by copying `.env.example`:
+   ```sh
+   cp .env.example .env
+   ```
+3. **Contact Collin Hughes** to get the `RESEND_API_KEY` value
+4. Add the API key to your `.env` file:
+   ```
+   RESEND_API_KEY=your_key_here
+   ```
+
+### 2. Viewing Test Emails in Resend
+
+During development, all emails are sent to a test domain and can be viewed in the Resend dashboard.
+
+1. **Login to Resend**: Visit [https://resend.com/login](https://resend.com/login)
+   - Email: `nautilus-devs@outlook.com`
+   - Password: **Contact Collin Hughes for the password**
+
+2. **View Test Emails**:
+   - Navigate to the **Emails** page (under the "Sending" section)
+   - Click the envelope icon next to any email to preview its content
+   - To interact with links in the email preview, right-click and select "Open link in new tab"
+
+### 3. Running Nautilus Locally
+
+The easiest way to run the entire application is using the launch script:
+
+1. Open PowerShell in the project root directory
+2. Run the following command:
+   ```powershell
+   .\runlocal.ps1
+   ```
+3. This will start all three services:
+   - 📧 Email Service (port 3001)
+   - 🔧 .NET API (port 5106)
+   - 🌐 Frontend (port 5173)
+
+4. Once all services are running, open your browser to:
+   ```
+   http://localhost:5173
+   ```
+
+5. Press `Ctrl+C` in the PowerShell window to stop all services
+
+### Alternative: Manual Setup
+
+If you prefer to run services individually:
+
+#### Configure Backend for In-Memory Mode
+- Open `server/Nautilus.Api/appsettings.Development.json`
+- Ensure it contains:
+  ```json
+  "Backend": {
+    "Type": "memory"
+  }
+  ```
+
+#### Run the Email Service
+```sh
+cd email
+npm install
+npm run dev
+```
+
+#### Run the .NET Server
+```sh
+cd server/Nautilus.Api
+dotnet run
+```
+
+#### Run the Frontend
+```sh
+cd frontend
+npm install
+npm run dev
+```
 
 ## Contributing
 
