@@ -9,9 +9,21 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3001;
+const isDevelopment = process.env.NODE_ENV !== 'production';
 
 // Initialize Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Helper function to convert email to test domain in development
+function getEmailRecipient(email: string): string {
+    if (!isDevelopment) {
+        return email;
+    }
+
+    // Replace domain with nautilus.testing for development
+    const [localPart] = email.split('@');
+    return `delivered+${localPart}@resend.dev`;
+}
 
 app.use(express.json());
 
@@ -46,9 +58,12 @@ app.post('/api/send/activate', async (req: Request, res: Response) => {
             ActivateAccount({ activationUrl, name })
         );
 
+        const recipientEmail = getEmailRecipient(email);
+        console.log(`Sending activation email to: ${recipientEmail}${isDevelopment ? ' (test mode)' : ''}`);
+
         const { data, error } = await resend.emails.send({
             from: 'Nautilus <noreply-nautilus@resend.dev>',
-            to: ["collinhughes@outlook.com"],
+            to: [recipientEmail],
             subject: 'Activate Your Nautilus Account',
             html: emailHtml,
         });
@@ -80,9 +95,12 @@ app.post('/api/send/reset-password', async (req: Request, res: Response) => {
             ResetPassword({ resetUrl, name })
         );
 
+        const recipientEmail = getEmailRecipient(email);
+        console.log(`Sending password reset email to: ${recipientEmail}${isDevelopment ? ' (test mode)' : ''}`);
+
         const { data, error } = await resend.emails.send({
             from: 'Nautilus <noreply-nautilus@resend.dev>',
-            to: ["collinhughes@outlook.com"],
+            to: [recipientEmail],
             subject: 'Reset Your Nautilus Password',
             html: emailHtml,
         });
