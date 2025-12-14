@@ -15,6 +15,10 @@ export async function activateAccount(token: string) {
     return post<{ message: string }>("/auth/activate", { Token: token })
 }
 
+export async function resendActivationEmail(email: string) {
+    return post<{ message: string }>("/auth/resend-activation", { Email: email })
+}
+
 export async function requestPasswordReset(email: string) {
     return post<{ message: string }>("/auth/request-password-reset", { Email: email })
 }
