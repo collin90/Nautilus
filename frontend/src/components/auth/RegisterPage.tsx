@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Tooltip from "@/components/ui/tooltip";
 import { useState, useMemo } from "react";
-import { register as apiRegister } from "@/lib/auth/api/requests";
+import { register as apiRegister, resendActivationEmail } from "@/lib/auth/api/requests";
 import useNavigate from "@/hooks/useNavigate";
 
 export default function RegisterPage() {
@@ -19,7 +19,9 @@ export default function RegisterPage() {
     const [confirmError, setConfirmError] = useState<string | null>(null)
     const [generalError, setGeneralError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
+    const [registeredEmail, setRegisteredEmail] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
+    const [resending, setResending] = useState(false)
 
     function scorePassword(pw: string) {
         let score = 0
@@ -80,8 +82,13 @@ export default function RegisterPage() {
                             setLoading(true)
                             try {
                                 await apiRegister(username.trim(), email.trim(), password)
-                                setSuccess("Account created successfully")
-                                // Optionally navigate to login
+                                setRegisteredEmail(email.trim())
+                                setSuccess("Account created! Please check your email to activate your account.")
+                                // Clear form
+                                setUsername("")
+                                setEmail("")
+                                setPassword("")
+                                setConfirm("")
                             } catch (err: any) {
                                 setGeneralError(err?.message || "Registration failed")
                             } finally {
@@ -108,7 +115,39 @@ export default function RegisterPage() {
                         <Input label="Confirm password" type="password" placeholder="Confirm password" value={confirm} onChange={(e) => setConfirm(e.target.value)} error={confirmError} />
 
                         {generalError ? <p className="text-sm text-red-600">{generalError}</p> : null}
-                        {success ? <p className="text-sm text-green-600">{success}</p> : null}
+                        {success ? (
+                            <div className="space-y-3 p-4 bg-green-50 border border-green-200 rounded-md">
+                                <p className="text-sm text-green-800 font-medium">{success}</p>
+                                <p className="text-xs text-green-700">
+                                    We've sent an activation link to <strong>{registeredEmail}</strong>.
+                                    Click the link in the email to activate your account.
+                                </p>
+                                <p className="text-xs text-green-600">
+                                    💡 Don't see the email? Check your spam folder.
+                                </p>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    type="button"
+                                    onClick={async () => {
+                                        if (!registeredEmail) return
+                                        setResending(true)
+                                        try {
+                                            await resendActivationEmail(registeredEmail)
+                                            setSuccess("Account created! A new activation email has been sent.")
+                                        } catch (err: any) {
+                                            setGeneralError("Failed to resend activation email. Please try again later.")
+                                        } finally {
+                                            setResending(false)
+                                        }
+                                    }}
+                                    disabled={resending}
+                                    className="w-full"
+                                >
+                                    {resending ? "Sending..." : "Resend activation email"}
+                                </Button>
+                            </div>
+                        ) : null}
 
                         <div className="flex items-center justify-between">
                             {tooltipMessage ? (

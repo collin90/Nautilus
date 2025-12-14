@@ -14,6 +14,7 @@ public static class AuthRoutes
         group.MapPost("/register", RegisterHandler.Handle);
         group.MapPost("/login", LoginHandler.Handle);
         group.MapPost("/activate", ActivateAccountHandler.Handle);
+        group.MapPost("/resend-activation", ResendActivationHandler.Handle);
         group.MapPost("/request-password-reset", RequestPasswordResetHandler.Handle);
         group.MapPost("/reset-password", ResetPasswordHandler.Handle);
 
