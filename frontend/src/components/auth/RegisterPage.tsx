@@ -113,7 +113,11 @@ export default function RegisterPage() {
                         </div>
 
                         <Input label="Confirm password" type="password" placeholder="Confirm password" value={confirm} onChange={(e) => setConfirm(e.target.value)} error={confirmError} />
-
+                        {(confirm.length > 0 && confirm !== password) && (
+                            <p className="text-sm text-red-600">
+                                Passwords do not match!
+                            </p>
+                        )}
                         {generalError ? <p className="text-sm text-red-600">{generalError}</p> : null}
                         {success ? (
                             <div className="space-y-3 p-4 bg-green-50 border border-green-200 rounded-md">
