@@ -1,4 +1,4 @@
-using Nautilus.Api.Infrastructure.Auth;
+using Nautilus.Api.Services;
 
 namespace Nautilus.Api.Application.Auth.Activate;
 
@@ -6,7 +6,7 @@ public static class ActivateAccountHandler
 {
     public static async Task<IResult> Handle(
         ActivateAccountRequest request,
-        IAuthRepository repo,
+        IAuthService repo,
         ILogger<ActivateAccountRequest> logger)
     {
         if (string.IsNullOrWhiteSpace(request.Token))

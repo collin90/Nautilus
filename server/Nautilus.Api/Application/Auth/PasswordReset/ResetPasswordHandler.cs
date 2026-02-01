@@ -1,5 +1,4 @@
-using Nautilus.Api.Infrastructure.Auth;
-using Nautilus.Api.Infrastructure.Security;
+using Nautilus.Api.Services;
 
 namespace Nautilus.Api.Application.Auth.PasswordReset;
 
@@ -7,8 +6,7 @@ public static class ResetPasswordHandler
 {
     public static async Task<IResult> Handle(
         ResetPasswordRequest request,
-        IAuthRepository repo,
-        PasswordHasher hasher,
+        IAuthService repo,
         ILogger<ResetPasswordRequest> logger)
     {
         if (string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.NewPassword))
@@ -16,7 +14,7 @@ public static class ResetPasswordHandler
             return Results.BadRequest(new { Message = "Token and new password are required." });
         }
 
-        var success = await repo.ResetPasswordAsync(request.Token, request.NewPassword, hasher);
+        var success = await repo.ResetPasswordAsync(request.Token, request.NewPassword);
 
         if (!success)
         {

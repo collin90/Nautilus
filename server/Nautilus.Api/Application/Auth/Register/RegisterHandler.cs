@@ -1,5 +1,5 @@
-using Nautilus.Api.Infrastructure.Auth;
-using Nautilus.Api.Infrastructure.Email;
+using Nautilus.Api.Services;
+using Nautilus.Api.Lib;
 
 namespace Nautilus.Api.Application.Auth.Register;
 
@@ -7,7 +7,7 @@ public static class RegisterHandler
 {
     public static async Task<IResult> Handle(
         RegisterRequest request,
-        IAuthRepository repo,
+        IAuthService repo,
         IEmailService emailService,
         ILogger<RegisterRequest> logger)
     {

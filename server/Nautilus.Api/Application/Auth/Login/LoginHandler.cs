@@ -1,6 +1,6 @@
-using System;
-using Nautilus.Api.Infrastructure.Auth;
-using Nautilus.Api.Infrastructure.Security;
+using Nautilus.Api.Services;
+using Nautilus.Api.Services.Security;
+using Nautilus.Api.Lib;
 
 namespace Nautilus.Api.Application.Auth.Login;
 
@@ -8,8 +8,7 @@ public static class LoginHandler
 {
     public static async Task<IResult> Handle(
         LoginRequest request,
-        IAuthRepository repo,
-        PasswordHasher hasher,
+        IAuthService repo,
         JwtService jwtService)
     {
         var user = await repo.GetUserByIdentifierAsync(request.Identifier);
@@ -18,7 +17,7 @@ public static class LoginHandler
             return Results.BadRequest("Invalid credentials. User could not be found matching this email or username.");
 
         // Check password using password hasher
-        if (user.PasswordHash is null || user.PasswordSalt is null || !hasher.Verify(request.Password, user.PasswordHash, user.PasswordSalt))
+        if (user.PasswordHash is null || user.PasswordSalt is null || !PasswordHasher.Verify(request.Password, user.PasswordHash, user.PasswordSalt))
             return Results.BadRequest("Invalid credentials. Incorrect Password.");
 
         // Check if account is activated

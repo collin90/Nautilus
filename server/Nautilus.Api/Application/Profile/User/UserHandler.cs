@@ -1,10 +1,10 @@
 
-using Nautilus.Api.Infrastructure.Profile;
+using Nautilus.Api.Services;
 namespace Nautilus.Api.Application.Profile.User;
 
 public static class UserHandler
 {
-    public static async Task<IResult> Handle(HttpContext context, Guid userId, IProfileRepository repo)
+    public static async Task<IResult> Handle(HttpContext context, Guid userId, IProfileService repo)
     {
         try
         {
